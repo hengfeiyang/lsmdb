@@ -7,11 +7,10 @@ import (
 	"github.com/hengfeiyang/lsmdb/internal/pkg/db"
 )
 
-func Get(c *gin.Context) {
-	val, err := db.DB.Query(c.Param("key"))
-	if err != nil {
+func Flush(c *gin.Context) {
+	if err := db.DB.Flush(); err != nil {
 		c.JSON(http.StatusOK, gin.H{"status": 1, "message": err.Error()})
-		return
+	} else {
+		c.JSON(http.StatusOK, gin.H{"status": 0, "message": "flush ok"})
 	}
-	c.JSON(http.StatusOK, gin.H{"status": 0, "value": val})
 }
