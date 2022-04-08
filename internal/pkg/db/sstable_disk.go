@@ -10,13 +10,19 @@ import (
 	"github.com/pierrec/lz4"
 )
 
+var _diskCache = map[string]*DiskSSTable{}
+
 type DiskSSTable struct {
 	filename string
 	Blocks   map[uint32]*SSTable
 }
 
 func NewDiskSSTable(filename string) (*DiskSSTable, error) {
-	return &DiskSSTable{filename, map[uint32]*SSTable{}}, nil
+	if v, ok := _diskCache[filename]; ok {
+		return v, nil
+	}
+	_diskCache[filename] = &DiskSSTable{filename, map[uint32]*SSTable{}}
+	return _diskCache[filename], nil
 }
 
 func (t *DiskSSTable) Query(blockIndex uint32, seek uint32, key string) (*Command, error) {
@@ -33,6 +39,10 @@ func (t *DiskSSTable) Query(blockIndex uint32, seek uint32, key string) (*Comman
 }
 
 func (t *DiskSSTable) LoadBlock(blockIndex uint32, seek uint32) error {
+	if _, ok := t.Blocks[blockIndex]; ok {
+		return nil
+	}
+
 	f, err := os.Open(t.filename)
 	if err != nil {
 		return err

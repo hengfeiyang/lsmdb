@@ -69,7 +69,7 @@ func (t *MEMSSTable) Query(key string) (string, error) {
 		return v.Value, nil
 	}
 	// then lookup immutable tables
-	for i := range t.immutable {
+	for i := len(t.immutable) - 1; i >= 0; i-- {
 		if v := t.immutable[i].Query(key); v != nil {
 			return v.Value, nil
 		}
