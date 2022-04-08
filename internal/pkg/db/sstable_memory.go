@@ -58,7 +58,7 @@ func (t *MEMSSTable) command(c *Command, restore bool) error {
 	if !restore {
 		t.wal.Append(c)
 	}
-	t.activeTable.Append(c)
+	t.activeTable.Set(c)
 	t.lock.Unlock()
 	return nil
 }
@@ -134,7 +134,7 @@ func (t *MEMSSTable) Flush() error {
 				return fmt.Errorf("write compress data err: data length err %d,%d", n, blockSize)
 			}
 			sparseIndex = append(sparseIndex, SparseIndex{
-				Key:        t.immutable[i].data[0].Key,
+				Key:        t.immutable[i].data.Front().Key().(string),
 				DataStart:  uint32(metaInfo.DataLength),
 				BlockIndex: uint32(i),
 			})
@@ -225,7 +225,7 @@ func (t *MEMSSTable) LoadFromDiskTable(f *os.File) error {
 		index.Restore(data)
 		index.TableName = f.Name()
 		t.sparseIndex = append(t.sparseIndex, index)
-		// intln("load sparse index: ", nn, index.Key, index.TableName, index.BlockIndex)
+		fmt.Println("load sparse index: ", nn, index.Key, index.TableName, index.BlockIndex)
 	}
 
 	t.id++ // restore a table, need incrase file id
@@ -271,7 +271,6 @@ func (t *MEMSSTable) LoadFromWAL(f io.ReadSeeker) error {
 
 // switchTable change current table to immutable, and create a new table for write
 func (t *MEMSSTable) switchTable() {
-	t.activeTable.Sort()
 	t.immutable = append(t.immutable, t.activeTable)
 	t.activeTable = NewSSTable()
 }

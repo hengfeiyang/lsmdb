@@ -57,5 +57,7 @@
 2. [x] disk SSTable
 3. [x] WAL
 4. [x] memory flush to disk
-5. [ ] disk SSTable compaction
-6. [ ] memory SSTable use skiplist
+5. [x] memory SSTable use skiplist
+6. [ ] L0 data has repeat key, need read latest key
+7. [ ] disk SSTable compaction
+8. [ ] use bitmap to improve performance

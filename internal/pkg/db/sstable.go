@@ -4,44 +4,47 @@ import (
 	"bytes"
 	"encoding/binary"
 	"io"
-	"sort"
+
+	"github.com/huandu/skiplist"
 )
 
 type SSTable struct {
-	data CommandData
+	data *skiplist.SkipList
 }
 
 func NewSSTable() *SSTable {
-	return &SSTable{}
+	return &SSTable{
+		data: skiplist.New(skiplist.String),
+	}
 }
 
-func (t *SSTable) Append(c *Command) {
-	t.data = append(t.data, c)
+func (t *SSTable) Set(c *Command) {
+	t.data.Set(c.Key, c)
 }
 
 func (t *SSTable) Query(key string) *Command {
-	for i := range t.data {
-		if t.data[i].Key == key {
-			return t.data[i]
-		}
+	if e := t.data.Get(key); e != nil {
+		return e.Value.(*Command)
 	}
 	return nil
 }
 
-func (t *SSTable) Sort() {
-	sort.Sort(t.data)
-}
-
 func (t *SSTable) Len() int {
-	return len(t.data)
+	return t.data.Len()
 }
 
 func (t *SSTable) Bytes() []byte {
 	buf := bytes.NewBuffer(nil)
-	for i := 0; i < len(t.data); i++ {
-		n, body := t.data[i].Bytes()
+	e := t.data.Front()
+	for {
+		if e == nil {
+			break
+		}
+		v := e.Value.(*Command)
+		n, body := v.Bytes()
 		binary.Write(buf, binary.LittleEndian, uint32(n))
 		buf.Write(body)
+		e = e.Next()
 	}
 	return buf.Bytes()
 }
@@ -58,8 +61,7 @@ func (t *SSTable) Restore(data []byte) error {
 		}
 		cmd := new(Command)
 		cmd.Restore(buf.Next(int(n)))
-		t.data = append(t.data, cmd)
-		// fmt.Printf("SSTable.Restore: %+v\n", cmd)
+		t.Set(cmd)
 	}
 	buf = nil
 
