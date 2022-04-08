@@ -1,6 +1,30 @@
 # LSM Tree demo project
 
 
+## API
+
+#### Set
+
+```
+curl -v -XPOST http://localhost:8080/api/v1/set/:key -d 'value'
+```
+
+#### Get
+
+```
+curl -v http://localhost:8080/api/v1/get/:key
+```
+
+#### Flush
+
+```
+curl -v http://localhost:8080/api/v1/flush
+```
+
+flush memory data to disk table and delete wal log.
+
+## Structure
+
 #### set flow
 
 1. command -> memory SSTable -> WAL
