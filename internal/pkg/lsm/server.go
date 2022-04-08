@@ -1,19 +1,20 @@
-package db
+package lsm
 
 import (
 	"log"
 	"os"
 	"path"
+	"time"
 )
 
 const BlockKeyNum uint16 = 512  // each block contains N keys
 const TableBlockNum uint16 = 64 // each table contains N blocks
 
-var DB *MEMSSTable
+var DB *MEMTable
 
 func init() {
 	var err error
-	DB, err = NewMEMSSTable("./data", BlockKeyNum, TableBlockNum)
+	DB, err = NewMEMTable("./data", BlockKeyNum, TableBlockNum)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -23,6 +24,7 @@ func init() {
 	if err := loadSparseIndex(); err != nil {
 		log.Fatal(err)
 	}
+	go compactionSSTable()
 }
 
 func loadSparseIndex() error {
@@ -64,5 +66,18 @@ func restoreWAL() error {
 		}
 	}
 
+	return nil
+}
+
+func compactionSSTable() {
+	for {
+		time.Sleep(10 * time.Minute)
+		if err := compaction(); err != nil {
+			log.Printf("compactionSSTable error: %v", err)
+		}
+	}
+}
+
+func compaction() error {
 	return nil
 }

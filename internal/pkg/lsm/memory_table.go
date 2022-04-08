@@ -1,4 +1,4 @@
-package db
+package lsm
 
 import (
 	"bytes"
@@ -12,7 +12,7 @@ import (
 	"github.com/pierrec/lz4"
 )
 
-type MEMSSTable struct {
+type MEMTable struct {
 	activeTable *SSTable
 	immutable   []*SSTable
 	sparseIndex []*SparseIndex
@@ -25,8 +25,8 @@ type MEMSSTable struct {
 	tableBlockNum uint16
 }
 
-func NewMEMSSTable(rootPath string, blockKeyNum, tableBlockNum uint16) (*MEMSSTable, error) {
-	t := new(MEMSSTable)
+func NewMEMTable(rootPath string, blockKeyNum, tableBlockNum uint16) (*MEMTable, error) {
+	t := new(MEMTable)
 	t.rootPath = rootPath
 	t.blockKeyNum = blockKeyNum
 	t.tableBlockNum = tableBlockNum
@@ -42,15 +42,15 @@ func NewMEMSSTable(rootPath string, blockKeyNum, tableBlockNum uint16) (*MEMSSTa
 	return t, nil
 }
 
-func (t *MEMSSTable) Set(key, val string) error {
+func (t *MEMTable) Set(key, val string) error {
 	return t.command(&Command{Key: key, Value: val, Command: CommandTypeSet}, false)
 }
 
-func (t *MEMSSTable) Delete(key string) error {
+func (t *MEMTable) Delete(key string) error {
 	return t.command(&Command{Key: key, Command: CommandTypeDelete}, false)
 }
 
-func (t *MEMSSTable) command(c *Command, restore bool) error {
+func (t *MEMTable) command(c *Command, restore bool) error {
 	t.lock.Lock()
 	if t.activeTable.Len() >= int(t.blockKeyNum) {
 		t.switchTable()
@@ -63,7 +63,7 @@ func (t *MEMSSTable) command(c *Command, restore bool) error {
 	return nil
 }
 
-func (t *MEMSSTable) Query(key string) (string, error) {
+func (t *MEMTable) Query(key string) (string, error) {
 	// first lookup activity table
 	if v := t.activeTable.Query(key); v != nil {
 		return v.Value, nil
@@ -95,7 +95,7 @@ func (t *MEMSSTable) Query(key string) (string, error) {
 }
 
 // Flush memory data to disk, generate a disk sstable
-func (t *MEMSSTable) Flush() error {
+func (t *MEMTable) Flush() error {
 	lz4buf := bytes.NewBuffer(nil)
 
 	t.lock.Lock()
@@ -182,7 +182,7 @@ func (t *MEMSSTable) Flush() error {
 }
 
 // LoadFromDiskTable restore sstable from wal
-func (t *MEMSSTable) LoadFromDiskTable(f *os.File) error {
+func (t *MEMTable) LoadFromDiskTable(f *os.File) error {
 	f.Seek(-40, io.SeekEnd)
 	data := make([]byte, 40)
 	nn, err := f.Read(data)
@@ -233,7 +233,7 @@ func (t *MEMSSTable) LoadFromDiskTable(f *os.File) error {
 }
 
 // LoadFromWAL restore sstable from wal
-func (t *MEMSSTable) LoadFromWAL(f io.ReadSeeker) error {
+func (t *MEMTable) LoadFromWAL(f io.ReadSeeker) error {
 	var n uint32
 	var err error
 	var data []byte
@@ -270,7 +270,7 @@ func (t *MEMSSTable) LoadFromWAL(f io.ReadSeeker) error {
 }
 
 // switchTable change current table to immutable, and create a new table for write
-func (t *MEMSSTable) switchTable() {
+func (t *MEMTable) switchTable() {
 	t.immutable = append(t.immutable, t.activeTable)
 	t.activeTable = NewSSTable()
 }

@@ -7,7 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/hengfeiyang/lsmdb/internal/pkg/db"
+	"github.com/hengfeiyang/lsmdb/internal/pkg/lsm"
 )
 
 func Bulk(c *gin.Context) {
@@ -24,7 +24,7 @@ func Bulk(c *gin.Context) {
 			return
 		}
 		key := uuid.New().String()
-		db.DB.Set(key, string(val))
+		lsm.DB.Set(key, string(val))
 	}
 	c.JSON(http.StatusOK, gin.H{"status": 0, "message": "ok", "count": n})
 }

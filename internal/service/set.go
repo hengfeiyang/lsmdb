@@ -5,7 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/hengfeiyang/lsmdb/internal/pkg/db"
+	"github.com/hengfeiyang/lsmdb/internal/pkg/lsm"
 )
 
 func Set(c *gin.Context) {
@@ -18,6 +18,6 @@ func Set(c *gin.Context) {
 	if key == "" {
 		key = uuid.New().String()
 	}
-	db.DB.Set(key, string(val))
+	lsm.DB.Set(key, string(val))
 	c.JSON(http.StatusOK, gin.H{"status": 0, "message": "ok"})
 }
