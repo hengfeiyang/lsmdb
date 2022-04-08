@@ -49,3 +49,13 @@
 
 1. block data use LZ4 compressed
 2. wal log is not compressed
+
+
+#### feature
+
+1. [x] memory SSTable
+2. [x] disk SSTable
+3. [x] WAL
+4. [x] memory flush to disk
+5. [ ] disk SSTable compaction
+6. [ ] memory SSTable use skiplist
