@@ -55,9 +55,13 @@ func (t *MEMTable) command(c *Command, restore bool) error {
 	if t.activeTable.Len() >= int(t.blockKeyNum) {
 		t.switchTable()
 	}
+	t.lock.Unlock()
 	if !restore {
-		t.wal.Append(c)
+		if err := t.wal.Append(c); err != nil {
+			return err
+		}
 	}
+	t.lock.Lock()
 	t.activeTable.Set(c)
 	t.lock.Unlock()
 	return nil
