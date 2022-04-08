@@ -3,7 +3,6 @@ package db
 import (
 	"bytes"
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -30,7 +29,7 @@ func (t *DiskSSTable) Query(blockIndex uint32, seek uint32, key string) (*Comman
 		return v, nil
 	}
 
-	return nil, errors.New("key not exists in DiskSSTable")
+	return nil, nil
 }
 
 func (t *DiskSSTable) LoadBlock(blockIndex uint32, seek uint32) error {
@@ -62,8 +61,11 @@ func (t *DiskSSTable) LoadBlock(blockIndex uint32, seek uint32) error {
 	lz4buf := bytes.NewBuffer(data)
 	lz4r := lz4.NewReader(lz4buf)
 	unData := bytes.NewBuffer(nil)
-	nnn, err := io.Copy(unData, lz4r)
-	fmt.Println(blockIndex, seek, n, nn, nnn, err)
+	_, err = io.Copy(unData, lz4r)
+	// fmt.Println(t.filename, blockIndex, seek, n, nn, nnn, err)
+	if err != nil {
+		return err
+	}
 	block := NewSSTable()
 	if err := block.Restore(unData.Bytes()); err != nil {
 		return err

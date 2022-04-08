@@ -3,7 +3,6 @@ package db
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
 	"io"
 	"sort"
 )
@@ -37,14 +36,14 @@ func (t *SSTable) Len() int {
 	return len(t.data)
 }
 
-func (t *SSTable) Bytes() (int, []byte) {
+func (t *SSTable) Bytes() []byte {
 	buf := bytes.NewBuffer(nil)
 	for i := 0; i < len(t.data); i++ {
 		n, body := t.data[i].Bytes()
 		binary.Write(buf, binary.LittleEndian, uint32(n))
 		buf.Write(body)
 	}
-	return buf.Len(), buf.Bytes()
+	return buf.Bytes()
 }
 
 func (t *SSTable) Restore(data []byte) error {
@@ -60,7 +59,7 @@ func (t *SSTable) Restore(data []byte) error {
 		cmd := new(Command)
 		cmd.Restore(buf.Next(int(n)))
 		t.data = append(t.data, cmd)
-		fmt.Printf("SSTable.Restore: %+v\n", cmd)
+		// fmt.Printf("SSTable.Restore: %+v\n", cmd)
 	}
 	buf = nil
 

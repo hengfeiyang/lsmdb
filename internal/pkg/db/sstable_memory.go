@@ -77,26 +77,17 @@ func (t *MEMSSTable) Query(key string) (string, error) {
 
 	// last lookup sparse index table
 	for i := range t.sparseIndex {
-		if t.sparseIndex[i].Key == key {
-			disk, err := NewDiskSSTable(t.sparseIndex[i].TableName)
-			if err != nil {
-				return "", err
-			}
-			if v, err := disk.Query(t.sparseIndex[i].BlockIndex, t.sparseIndex[i].DataStart, key); err != nil {
-				return "", err
-			} else {
-				return v.Value, nil
-			}
-		} else {
-			disk, err := NewDiskSSTable(t.sparseIndex[i].TableName)
-			if err != nil {
-				return "", err
-			}
-			if v, err := disk.Query(t.sparseIndex[i].BlockIndex, t.sparseIndex[i].DataStart, key); err != nil {
-				return "", err
-			} else {
-				return v.Value, nil
-			}
+		if t.sparseIndex[i].Key > key {
+			continue
+		}
+		disk, err := NewDiskSSTable(t.sparseIndex[i].TableName)
+		if err != nil {
+			return "", err
+		}
+		if v, err := disk.Query(t.sparseIndex[i].BlockIndex, t.sparseIndex[i].DataStart, key); err != nil {
+			return "", err
+		} else if v != nil {
+			return v.Value, nil
 		}
 	}
 
@@ -123,26 +114,31 @@ func (t *MEMSSTable) Flush() error {
 		metaInfo.TableBlockNum = t.tableBlockNum
 		sparseIndex := make([]SparseIndex, 0, int(t.tableBlockNum)*2)
 		var i int
+		var n int64
 		for i = 0; i < len(t.immutable) && i < int(t.tableBlockNum); i++ {
 			if t.immutable[i].Len() == 0 {
 				continue
 			}
 			lz4buf.Reset()
 			lz4w := lz4.NewWriter(lz4buf)
-			_, body := t.immutable[i].Bytes()
-			_, err := lz4w.Write(body)
-			if err != nil {
+			if _, err = lz4w.Write(t.immutable[i].Bytes()); err != nil {
 				return err
 			}
 			lz4w.Close()
-			binary.Write(f, binary.LittleEndian, uint32(lz4buf.Len()))
-			io.Copy(f, lz4buf)
+			blockSize := int64(lz4buf.Len())
+			binary.Write(f, binary.LittleEndian, uint32(blockSize))
+			if n, err = io.Copy(f, lz4buf); err != nil {
+				return err
+			}
+			if n != blockSize {
+				return fmt.Errorf("write compress data err: data length err %d,%d", n, blockSize)
+			}
 			sparseIndex = append(sparseIndex, SparseIndex{
 				Key:        t.immutable[i].data[0].Key,
 				DataStart:  uint32(metaInfo.DataLength),
 				BlockIndex: uint32(i),
 			})
-			metaInfo.DataLength += uint64(lz4buf.Len()) + 4
+			metaInfo.DataLength += uint64(blockSize) + 4
 		}
 
 		// write sparse index
@@ -155,10 +151,10 @@ func (t *MEMSSTable) Flush() error {
 		}
 
 		// write meta info
-		n, err := f.Write(metaInfo.Bytes())
-		fmt.Printf("metainfo length=%d, %+v\n", n, metaInfo)
-		if err != nil {
+		if n, err := f.Write(metaInfo.Bytes()); err != nil {
 			return err
+		} else {
+			fmt.Printf("metainfo length=%d, %+v\n", n, metaInfo)
 		}
 		if err := f.Sync(); err != nil {
 			return err
@@ -219,7 +215,7 @@ func (t *MEMSSTable) LoadFromDiskTable(f *os.File) error {
 		} else {
 			data = data[:n]
 		}
-		if nn, err = f.Read(data); err != nil {
+		if _, err = f.Read(data); err != nil {
 			if err == io.EOF {
 				break
 			}
@@ -229,7 +225,7 @@ func (t *MEMSSTable) LoadFromDiskTable(f *os.File) error {
 		index.Restore(data)
 		index.TableName = f.Name()
 		t.sparseIndex = append(t.sparseIndex, index)
-		fmt.Println("load sparse index: ", index.Key, nn)
+		// intln("load sparse index: ", nn, index.Key, index.TableName, index.BlockIndex)
 	}
 
 	t.id++ // restore a table, need incrase file id
