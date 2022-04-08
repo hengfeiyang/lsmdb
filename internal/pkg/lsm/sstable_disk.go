@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"log"
 	"os"
 
 	"github.com/pierrec/lz4"
@@ -71,8 +72,8 @@ func (t *DiskSSTable) LoadBlock(blockIndex uint32, seek uint32) error {
 	lz4buf := bytes.NewBuffer(data)
 	lz4r := lz4.NewReader(lz4buf)
 	unData := bytes.NewBuffer(nil)
-	_, err = io.Copy(unData, lz4r)
-	// fmt.Println(t.filename, blockIndex, seek, n, nn, nnn, err)
+	nnn, err := io.Copy(unData, lz4r)
+	log.Println(t.filename, blockIndex, seek, n, nn, nnn, err)
 	if err != nil {
 		return err
 	}

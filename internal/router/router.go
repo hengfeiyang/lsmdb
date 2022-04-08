@@ -9,5 +9,6 @@ func Route(app *gin.Engine) {
 	app.POST("/api/v1/_bulk", service.Bulk)
 	app.POST("/api/v1/set/:key", service.Set)
 	app.GET("/api/v1/get/:key", service.Get)
+	app.DELETE("/api/v1/get/:key", service.Delete)
 	app.GET("/api/v1/flush", service.Flush)
 }

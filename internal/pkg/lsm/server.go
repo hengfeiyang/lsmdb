@@ -1,6 +1,7 @@
 package lsm
 
 import (
+	"errors"
 	"log"
 	"os"
 	"path"
@@ -9,6 +10,8 @@ import (
 
 const BlockKeyNum uint16 = 512  // each block contains N keys
 const TableBlockNum uint16 = 64 // each table contains N blocks
+
+var ErrorNotExist = errors.New("key not exists")
 
 var DB *MEMTable
 

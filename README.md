@@ -83,5 +83,5 @@ flush memory data to disk table and delete wal log.
 4. [x] memory flush to disk
 5. [x] memory SSTable use skiplist
 6. [ ] L0 data has repeat key, need read latest key
-7. [ ] disk SSTable compaction
+7. [ ] disk SSTable compaction: Tiering compaction / Leveling compaction
 8. [ ] use bitmap to improve performance

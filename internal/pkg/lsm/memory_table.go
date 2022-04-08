@@ -3,7 +3,6 @@ package lsm
 import (
 	"bytes"
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -68,34 +67,45 @@ func (t *MEMTable) command(c *Command, restore bool) error {
 }
 
 func (t *MEMTable) Query(key string) (string, error) {
+	cmd, err := t.query(key)
+	if err != nil {
+		return "", err
+	}
+	if cmd.Command == CommandTypeDelete {
+		return "", ErrorNotExist
+	}
+	return cmd.Value, nil
+}
+
+func (t *MEMTable) query(key string) (*Command, error) {
 	// first lookup activity table
 	if v := t.activeTable.Query(key); v != nil {
-		return v.Value, nil
+		return v, nil
 	}
 	// then lookup immutable tables
 	for i := len(t.immutable) - 1; i >= 0; i-- {
 		if v := t.immutable[i].Query(key); v != nil {
-			return v.Value, nil
+			return v, nil
 		}
 	}
 
 	// last lookup sparse index table
-	for i := range t.sparseIndex {
+	for i := len(t.sparseIndex) - 1; i >= 0; i-- {
 		if t.sparseIndex[i].Key > key {
 			continue
 		}
 		disk, err := NewDiskSSTable(t.sparseIndex[i].TableName)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 		if v, err := disk.Query(t.sparseIndex[i].BlockIndex, t.sparseIndex[i].DataStart, key); err != nil {
-			return "", err
+			return nil, err
 		} else if v != nil {
-			return v.Value, nil
+			return v, nil
 		}
 	}
 
-	return "", errors.New("key not exists")
+	return nil, ErrorNotExist
 }
 
 // Flush memory data to disk, generate a disk sstable
